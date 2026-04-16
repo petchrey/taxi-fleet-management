@@ -2,7 +2,8 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- เพิ่ม viewport-fit=cover ช่วยเรื่องแถบ Safari ใน iPhone -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Fleet Command - ศูนย์บัญชาการรถม้า</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -35,8 +36,8 @@
             position: absolute;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
-            transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* แอนิเมชั่นตอนรูดขึ้นลง */
+            box-shadow: 0 -15px 30px rgba(0,0,0,0.15);
+            transition: height 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); /* แอนิเมชั่นตอนรูดสมูทขึ้น */
         }
         
         /* ซ่อน Scrollbar */
@@ -50,7 +51,8 @@
     <div id="map"></div>
 
     <!-- 👑 Header แถบด้านบน (โปร่งใส) -->
-    <header class="absolute top-0 left-0 w-full bg-gray-900/90 text-white p-3 flex justify-between items-center z-30 shadow-md backdrop-blur-sm">
+    <!-- เพิ่ม pt-safe-top สำหรับ iPhone notch -->
+    <header class="absolute top-0 left-0 w-full bg-gray-900/90 text-white p-3 pt-[max(env(safe-area-inset-top),0.75rem)] flex justify-between items-center z-30 shadow-md backdrop-blur-sm">
         <div class="flex items-center gap-3">
             <span class="text-3xl animate-bounce">🚕</span>
             <div>
@@ -71,22 +73,25 @@
     </header>
 
     <!-- 🎛️ แผงควบคุมลอยตัว (Bottom Sheet บนมือถือ / Sidebar บนคอม) -->
-    <div id="controlPanel" class="control-panel bottom-0 left-0 w-full h-[50vh] md:h-[80vh] md:w-[400px] md:top-20 md:left-4 md:rounded-2xl rounded-t-3xl flex flex-col border border-gray-200">
+    <!-- ปรับความสูงตั้งต้นเป็น 50dvh (Dynamic Viewport Height ช่วยเรื่อง Safari บน iPhone) -->
+    <div id="controlPanel" class="control-panel bottom-0 left-0 w-full h-[50dvh] md:h-[80vh] md:w-[400px] md:top-24 md:left-4 md:rounded-2xl rounded-t-3xl flex flex-col border border-gray-200">
         
-        <!-- ตัวจับลาก (สำหรับมือถือ) กดเพื่อยืด/หด -->
-        <div class="w-full flex justify-center pt-3 pb-2 md:hidden cursor-pointer touch-none" onclick="togglePanelState()">
-            <div class="w-16 h-1.5 bg-gray-300 rounded-full"></div>
+        <!-- 🌟 ตัวจับลาก (สำหรับมือถือ) อัปเกรดขยายพื้นที่กดให้ใหญ่ขึ้น 🌟 -->
+        <div class="w-full flex flex-col items-center justify-center pt-3 pb-3 md:hidden cursor-pointer bg-white/50 rounded-t-3xl border-b border-gray-100" onclick="togglePanelState()">
+            <div class="w-16 h-1.5 bg-gray-400 rounded-full mb-1"></div>
+            <div id="panelIndicator" class="text-[11px] font-bold text-blue-600 flex items-center gap-1 bg-blue-50 px-3 py-0.5 rounded-full">
+                แตะเพื่อขยายเต็มจอ <span>🔼</span>
+            </div>
         </div>
-        <div class="text-center text-[10px] text-gray-400 md:hidden mb-1 pointer-events-none">กดแถบเพื่อยืด/หดหน้าต่าง</div>
 
-        <!-- 🌟 แท็บเมนู (อัปเกรดใหม่ สลับเนื้อหาได้) 🌟 -->
+        <!-- 🌟 แท็บเมนู 🌟 -->
         <div class="flex border-b border-gray-200 px-2 mt-1 md:mt-3">
-            <button id="tabUrgent" onclick="switchTab('urgent')" class="flex-1 py-2 font-bold text-blue-600 border-b-2 border-blue-600 text-sm transition-colors btn-press">📡 งานด่วน (2)</button>
-            <button id="tabScheduled" onclick="switchTab('scheduled')" class="flex-1 py-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-gray-600 text-sm transition-colors btn-press">📅 งานจอง (5)</button>
+            <button id="tabUrgent" onclick="switchTab('urgent')" class="flex-1 py-3 font-bold text-blue-600 border-b-2 border-blue-600 text-sm transition-colors btn-press">📡 งานด่วน (2)</button>
+            <button id="tabScheduled" onclick="switchTab('scheduled')" class="flex-1 py-3 font-bold text-gray-400 border-b-2 border-transparent hover:text-gray-600 text-sm transition-colors btn-press">📅 งานจอง (5)</button>
         </div>
 
         <!-- 📜 พื้นที่แสดงรายการ (สลับเปลี่ยนไปมา) -->
-        <div class="p-3 flex-1 overflow-y-auto scrollbar-hide pb-10">
+        <div class="p-3 flex-1 overflow-y-auto scrollbar-hide pb-[max(env(safe-area-inset-bottom),1rem)]">
             
             <!-- ============================================== -->
             <!-- 🔴 คอนเทนต์: งานด่วน (แสดงเป็นค่าเริ่มต้น) -->
@@ -102,20 +107,20 @@
                     </div>
                     <h3 class="font-bold text-gray-800 text-base leading-tight mt-1">โรงแรม แชงกรี-ล่า <br><span class="text-gray-500 font-normal text-sm">➡ ไป สนามบิน</span></h3>
                     <p class="text-xs text-gray-500 mt-2">👤 ผู้โดยสาร 2 ท่าน (กระเป๋า 2 ใบ)</p>
-                    <button onclick="mockAssignNearest()" class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-sm transition-colors btn-press shadow-md flex justify-center items-center gap-2">
+                    <button onclick="mockAssignNearest()" class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg text-sm transition-colors btn-press shadow-md flex justify-center items-center gap-2">
                         <span>📲</span> จ่ายงานให้รถที่ใกล้สุด
                     </button>
                 </div>
 
                 <!-- งานด่วน 2 -->
-                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-yellow-400">
                     <div class="flex justify-between items-center mb-1">
                         <span class="bg-yellow-50 text-yellow-600 text-[10px] font-bold px-2 py-1 rounded-full border border-yellow-100">🟡 คิวใหม่</span>
                         <span class="text-[10px] text-gray-400">เพิ่งเข้ามา</span>
                     </div>
                     <h3 class="font-bold text-gray-800 text-base leading-tight mt-1">นิมมาน ซอย 9 <br><span class="text-gray-500 font-normal text-sm">➡ ไป เซ็นทรัลเฟสฯ</span></h3>
                     <p class="text-xs text-gray-500 mt-2">👤 ผู้โดยสาร 4 ท่าน (ต้องการรถใหญ่)</p>
-                    <button onclick="mockSelectCar()" class="w-full mt-3 bg-gray-100 hover:bg-gray-200 text-blue-700 font-bold py-2 rounded-lg text-sm border border-gray-300 transition-colors btn-press flex justify-center items-center gap-2">
+                    <button onclick="mockSelectCar()" class="w-full mt-3 bg-gray-100 hover:bg-gray-200 text-blue-700 font-bold py-3 rounded-lg text-sm border border-gray-300 transition-colors btn-press flex justify-center items-center gap-2">
                         <span>🎯</span> เลือกคันรับงาน (Manual)
                     </button>
                 </div>
@@ -136,7 +141,7 @@
                     <h3 class="font-bold text-gray-800 text-sm leading-tight mt-1">รับ สนามบิน <br><span class="text-gray-500 font-normal text-xs">➡ ไป รร. แชงกรี-ล่า</span></h3>
                     <p class="text-xs text-gray-500 mt-1">👤 3 ท่าน (สัมภาระเยอะ)</p>
                     <div class="flex gap-2 mt-2">
-                        <button onclick="showActionModal('จัดรถล่วงหน้า', 'เลือกรถที่ต้องการผูกคิวนี้ไว้ให้เลย', 'ยืนยัน')" class="flex-1 bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold py-1.5 rounded-lg text-xs transition-colors btn-press border border-purple-200">
+                        <button onclick="showActionModal('จัดรถล่วงหน้า', 'เลือกรถที่ต้องการผูกคิวนี้ไว้ให้เลย', 'ยืนยัน')" class="flex-1 bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold py-2 rounded-lg text-xs transition-colors btn-press border border-purple-200">
                             จัดรถล่วงหน้า 🚗
                         </button>
                     </div>
@@ -151,44 +156,44 @@
                     <h3 class="font-bold text-gray-800 text-sm leading-tight mt-1">ดอยสุเทพ <br><span class="text-gray-500 font-normal text-xs">➡ ไป นิมมาน</span></h3>
                     <p class="text-xs text-gray-500 mt-1">👤 2 ท่าน</p>
                     <div class="flex gap-2 mt-2">
-                        <button onclick="showActionModal('จัดรถล่วงหน้า', 'เลือกรถที่ต้องการผูกคิวนี้ไว้ให้เลย', 'ยืนยัน')" class="flex-1 bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold py-1.5 rounded-lg text-xs transition-colors btn-press border border-purple-200">
+                        <button onclick="showActionModal('จัดรถล่วงหน้า', 'เลือกรถที่ต้องการผูกคิวนี้ไว้ให้เลย', 'ยืนยัน')" class="flex-1 bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold py-2 rounded-lg text-xs transition-colors btn-press border border-purple-200">
                             จัดรถล่วงหน้า 🚗
                         </button>
                     </div>
                 </div>
 
                 <!-- งานจอง 3 -->
-                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-gray-400">
+                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-gray-400 opacity-80">
                     <div class="flex justify-between items-center mb-1">
                         <span class="bg-gray-100 text-gray-700 text-[11px] font-bold px-2 py-1 rounded-full border border-gray-200">🕒 14:00 น.</span>
                         <span class="text-[10px] text-green-600 font-bold">✅ พี่โหน่งรับแล้ว</span>
                     </div>
                     <h3 class="font-bold text-gray-800 text-sm leading-tight mt-1">สถานีรถไฟ <br><span class="text-gray-500 font-normal text-xs">➡ ไป ม.เชียงใหม่</span></h3>
                     <p class="text-xs text-gray-500 mt-1">👤 1 ท่าน</p>
-                    <button class="w-full mt-2 bg-gray-50 text-gray-400 font-bold py-1.5 rounded-lg text-xs border border-gray-200" disabled>
+                    <button class="w-full mt-2 bg-gray-50 text-gray-400 font-bold py-2 rounded-lg text-xs border border-gray-200" disabled>
                         มอบหมายงานเรียบร้อย
                     </button>
                 </div>
             </div>
 
             <!-- ส่วนที่ 3: รายชื่อรถ (แสดงอยู่ด้านล่างเสมอ ไม่ว่าจะอยู่แท็บไหน) -->
-            <div class="border-t border-gray-200 pt-3 mt-4">
-                <div class="flex justify-between items-center mb-2">
+            <div class="border-t border-gray-200 pt-4 mt-6">
+                <div class="flex justify-between items-center mb-3">
                     <h3 class="font-bold text-sm text-gray-700 flex items-center gap-1"><span>🚘</span> คนขับออนไลน์ (3 คัน)</h3>
-                    <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold">ว่าง 2 คัน</span>
+                    <span class="bg-green-100 text-green-700 px-2 py-1 rounded font-bold text-[10px]">ว่าง 2 คัน</span>
                 </div>
                 
                 <div class="space-y-2">
-                    <div class="flex justify-between items-center text-sm bg-white border border-gray-100 p-2 rounded-lg shadow-sm">
+                    <div class="flex justify-between items-center text-sm bg-white border border-gray-100 p-3 rounded-xl shadow-sm">
                         <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 rounded-full bg-green-500 shadow-sm border border-white"></div> 
+                            <div class="w-3 h-3 rounded-full bg-green-500 shadow-sm border border-white animate-pulse"></div> 
                             <span class="font-bold text-gray-800">พี่โหน่ง (รถตู้)</span>
                         </div>
                         <div class="text-right">
                             <span class="block text-[10px] text-gray-500">เครดิต: 350 บ.</span>
                         </div>
                     </div>
-                    <div class="flex justify-between items-center text-sm bg-white border border-gray-100 p-2 rounded-lg shadow-sm opacity-75">
+                    <div class="flex justify-between items-center text-sm bg-white border border-gray-100 p-3 rounded-xl shadow-sm opacity-70">
                         <div class="flex items-center gap-2">
                             <div class="w-3 h-3 rounded-full bg-red-500 shadow-sm border border-white"></div> 
                             <span class="font-bold text-gray-800">น้าชัย (เก๋ง)</span>
@@ -197,9 +202,9 @@
                             <span class="block text-[10px] text-red-500 font-bold">กำลังวิ่งงาน</span>
                         </div>
                     </div>
-                    <div class="flex justify-between items-center text-sm bg-white border border-gray-100 p-2 rounded-lg shadow-sm">
+                    <div class="flex justify-between items-center text-sm bg-white border border-gray-100 p-3 rounded-xl shadow-sm">
                         <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 rounded-full bg-green-500 shadow-sm border border-white"></div> 
+                            <div class="w-3 h-3 rounded-full bg-green-500 shadow-sm border border-white animate-pulse"></div> 
                             <span class="font-bold text-gray-800">ไอ้เติ้ล (SUV)</span>
                         </div>
                         <div class="text-right">
@@ -213,7 +218,7 @@
     </div>
 
     <!-- คำอธิบายหมุดเล็กๆ บนขวา -->
-    <div class="absolute top-16 right-4 bg-white/90 p-2 rounded-lg shadow-md z-20 border border-gray-200 text-[10px] font-bold hidden sm:block backdrop-blur-sm">
+    <div class="absolute top-[80px] right-4 bg-white/90 p-2 rounded-lg shadow-md z-20 border border-gray-200 text-[10px] font-bold hidden sm:block backdrop-blur-sm">
         <div class="flex items-center gap-1 mb-1"><div class="w-3 h-3 rounded-full bg-green-500 border border-white shadow-sm"></div> รถว่าง</div>
         <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-red-500 border border-white shadow-sm"></div> ติดลูกค้า</div>
     </div>
@@ -239,7 +244,7 @@
                 <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-red-500 text-3xl font-bold btn-press leading-none">&times;</button>
             </div>
             
-            <div class="p-5 overflow-y-auto space-y-3 flex-1 scrollbar-hide">
+            <div class="p-5 overflow-y-auto space-y-3 flex-1 scrollbar-hide pb-8">
                 <p class="text-xs text-gray-500 mb-2 text-center">เมนูเหล่านี้จะเปิดให้ใช้งานในเวอร์ชันเต็มจ้า</p>
                 
                 <button onclick="alert('อนาคตจะเปิดหน้าเพิ่ม/ลบ รถแท็กซี่และดูประวัติคนขับตรงนี้จ้า')" class="w-full text-left bg-white hover:bg-blue-50 p-4 rounded-xl border border-gray-200 shadow-sm font-bold text-gray-700 flex justify-between items-center transition-colors btn-press">
@@ -263,17 +268,34 @@
 
     <script>
         // ----------------------------------------------------
-        // 🌟 1. ระบบควบคุมการยืด/หด หน้าต่างบนมือถือ
+        // 🌟 1. ระบบควบคุมการยืด/หด หน้าต่างบนมือถือ (อัปเกรดความฉลาด)
         // ----------------------------------------------------
-        let panelState = 1; // 0 = หดสุด (12vh), 1 = ครึ่งจอ (50vh), 2 = ขยายสุด (85vh)
-        const panelClasses = ['h-[12vh]', 'h-[50vh]', 'h-[85vh]'];
+        let panelState = 1; // 0 = หดสุด (15dvh), 1 = ครึ่งจอ (50dvh), 2 = ขยายสุด (80dvh)
+        // ใช้ dvh เพื่อให้พอดีกับแถบ URL ของ Safari ใน iPhone
+        const panelClasses = ['h-[15dvh]', 'h-[50dvh]', 'h-[80dvh]']; 
         
         function togglePanelState() {
-            if (window.innerWidth >= 768) return;
+            if (window.innerWidth >= 768) return; // ไม่ทำงานบนคอม
+            
             const panel = document.getElementById('controlPanel');
+            const indicator = document.getElementById('panelIndicator');
+            
+            // สลับสถานะ
             panel.classList.remove(...panelClasses);
             panelState = (panelState + 1) % 3;
             panel.classList.add(panelClasses[panelState]);
+
+            // เปลี่ยนข้อความบนปุ่มให้รู้ว่ากดแล้วจะเกิดอะไรขึ้น
+            if (panelState === 0) {
+                indicator.innerHTML = 'แตะเพื่อเปิดแผงควบคุม <span>🔼</span>';
+                indicator.className = 'text-[11px] font-bold text-gray-600 flex items-center gap-1 bg-gray-100 px-3 py-0.5 rounded-full';
+            } else if (panelState === 1) {
+                indicator.innerHTML = 'แตะเพื่อขยายเต็มจอ <span>🔼</span>';
+                indicator.className = 'text-[11px] font-bold text-blue-600 flex items-center gap-1 bg-blue-50 px-3 py-0.5 rounded-full';
+            } else {
+                indicator.innerHTML = 'แตะเพื่อย่อหน้าต่างลง <span>🔽</span>';
+                indicator.className = 'text-[11px] font-bold text-red-600 flex items-center gap-1 bg-red-50 px-3 py-0.5 rounded-full';
+            }
         }
 
         // ----------------------------------------------------
@@ -286,21 +308,19 @@
             const contentScheduled = document.getElementById('contentScheduled');
 
             if (tabName === 'urgent') {
-                // สลับปุ่ม
                 tabUrgent.classList.add('text-blue-600', 'border-blue-600');
                 tabUrgent.classList.remove('text-gray-400', 'border-transparent');
                 tabScheduled.classList.remove('text-blue-600', 'border-blue-600');
                 tabScheduled.classList.add('text-gray-400', 'border-transparent');
-                // สลับเนื้อหา
+                
                 contentUrgent.classList.remove('hidden');
                 contentScheduled.classList.add('hidden');
             } else {
-                // สลับปุ่ม
                 tabScheduled.classList.add('text-blue-600', 'border-blue-600');
                 tabScheduled.classList.remove('text-gray-400', 'border-transparent');
                 tabUrgent.classList.remove('text-blue-600', 'border-blue-600');
                 tabUrgent.classList.add('text-gray-400', 'border-transparent');
-                // สลับเนื้อหา
+                
                 contentScheduled.classList.remove('hidden');
                 contentUrgent.classList.add('hidden');
             }
